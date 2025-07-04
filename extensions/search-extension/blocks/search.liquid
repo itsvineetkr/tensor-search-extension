@@ -1,0 +1,84 @@
+<!-- search.liquid -->
+<style>
+  .search-ui {
+    padding: 1rem;
+    font-family: sans-serif;
+  }
+
+  .search-ui input {
+    padding: 0.5rem;
+    width: 300px;
+    margin-bottom: 1rem;
+  }
+
+  .search-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .search-item {
+    width: 200px;
+    border: 1px solid #ddd;
+    padding: 0.5rem;
+    text-align: center;
+  }
+
+  .search-item img {
+    width: 100%;
+    height: auto;
+  }
+
+  .search-item button {
+    margin-top: 0.5rem;
+    padding: 0.4rem 0.8rem;
+  }
+</style>
+
+<div class="search-ui">
+  <h2>Search result</h2>
+  <input id="searchInput" type="text" placeholder="Search for products..." />
+
+  <div id="searchGrid" class="search-grid"></div>
+</div>
+
+<script>
+  async function doSearch(query) {
+    const res = await fetch("/apps/api/search?q=" + encodeURIComponent(query));
+    console.log(res);
+    const data = await res.json();
+
+    const grid = document.getElementById("searchGrid");
+    grid.innerHTML = data
+      .map(
+        (p) => `
+      <div class="search-item">
+        <img src="${p.image}" alt="${p.title}" />
+        <strong>${p.title}</strong><br />
+        <span>${p.vendor}</span><br />
+        <strong>${p.price}</strong><br />
+        ${
+          p.available
+            ? '<button>ADD TO CART</button>'
+            : '<button disabled>OUT OF STOCK</button>'
+        }
+      </div>
+    `
+      )
+      .join("");
+  }
+
+  document.getElementById("searchInput").addEventListener("input", (e) => {
+    doSearch(e.target.value);
+  });
+
+  doSearch("");
+</script>
+
+{% schema %}
+{
+  "name": "Tensor Search Extension",
+  "target": "section",
+  "settings": []
+}
+{% endschema %}
