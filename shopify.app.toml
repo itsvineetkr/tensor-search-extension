@@ -3,7 +3,7 @@
 client_id = "95ebb725522f1b6d746d1f6c728a73b9"
 name = "Tensor Search Extension"
 handle = "tensor-search-extension"
-application_url = "https://announcements-forth-kenny-rangers.trycloudflare.com"
+application_url = "https://captured-analog-msgid-introducing.trycloudflare.com"
 embedded = true
 
 [build]
@@ -26,7 +26,7 @@ api_version = "2025-07"
 scopes = "write_products"
 
 [auth]
-redirect_urls = ["https://announcements-forth-kenny-rangers.trycloudflare.com/auth/callback", "https://announcements-forth-kenny-rangers.trycloudflare.com/auth/shopify/callback", "https://announcements-forth-kenny-rangers.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://captured-analog-msgid-introducing.trycloudflare.com/auth/callback", "https://captured-analog-msgid-introducing.trycloudflare.com/auth/shopify/callback", "https://captured-analog-msgid-introducing.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false

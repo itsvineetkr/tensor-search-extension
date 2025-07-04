@@ -1,79 +1,93 @@
 <!-- search.liquid -->
-<style>
-  .search-ui {
-    padding: 1rem;
-    font-family: sans-serif;
-  }
+<div id="custom-search-app" style="padding: 20px;">
+  <div style="display: flex; gap: 10px; align-items: center;">
+    <input type="text" id="search-input" placeholder="Search products..." style="flex: 1; padding: 10px;" />
+    <input type="number" id="min-price" placeholder="Min Price" style="width: 100px; padding: 10px;" />
+    <input type="number" id="max-price" placeholder="Max Price" style="width: 100px; padding: 10px;" />
+    <button id="search-button" style="padding: 10px 15px;">Search</button>
+  </div>
 
-  .search-ui input {
-    padding: 0.5rem;
-    width: 300px;
-    margin-bottom: 1rem;
-  }
-
-  .search-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-  }
-
-  .search-item {
-    width: 200px;
-    border: 1px solid #ddd;
-    padding: 0.5rem;
-    text-align: center;
-  }
-
-  .search-item img {
-    width: 100%;
-    height: auto;
-  }
-
-  .search-item button {
-    margin-top: 0.5rem;
-    padding: 0.4rem 0.8rem;
-  }
-</style>
-
-<div class="search-ui">
-  <h2>Search result</h2>
-  <input id="searchInput" type="text" placeholder="Search for products..." />
-
-  <div id="searchGrid" class="search-grid"></div>
+  <div id="product-results" style="margin-top: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px;"></div>
 </div>
 
 <script>
-  async function doSearch(query) {
-    const res = await fetch("/apps/api/search?q=" + encodeURIComponent(query));
-    console.log(res);
-    const data = await res.json();
+  document.getElementById('search-button').addEventListener('click', async () => {
+    const query = document.getElementById('search-input').value.trim();
+    const minPrice = parseFloat(document.getElementById('min-price').value) || 0;
+    const maxPrice = parseFloat(document.getElementById('max-price').value) || Infinity;
 
-    const grid = document.getElementById("searchGrid");
-    grid.innerHTML = data
-      .map(
-        (p) => `
-      <div class="search-item">
-        <img src="${p.image}" alt="${p.title}" />
-        <strong>${p.title}</strong><br />
-        <span>${p.vendor}</span><br />
-        <strong>${p.price}</strong><br />
-        ${
-          p.available
-            ? '<button>ADD TO CART</button>'
-            : '<button disabled>OUT OF STOCK</button>'
-        }
-      </div>
-    `
-      )
-      .join("");
-  }
+    const url = 'https://83ca-183-82-163-52.ngrok-free.app/api/v1/shopify-search';
+    const searchData = {
+      shop_domain: '{{ shop.domain }}',
+      query: query,
+      search_type: 'keyword',
+      per_page: 10,
+      page: 1
+    };
 
-  document.getElementById("searchInput").addEventListener("input", (e) => {
-    doSearch(e.target.value);
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(searchData)
+      });
+
+      const data = await response.json();
+      const hits = data.response[0].hits
+      const productContainer = document.getElementById('product-results');
+      productContainer.innerHTML = '';
+
+      if (!hits || hits.length === 0) {
+        productContainer.innerHTML = '<p>No products found.</p>';
+        return;
+      }
+
+      hits.forEach(hit => {
+        const doc = hit.document;
+        if (!doc || doc.price < minPrice || doc.price > maxPrice) return;
+
+        const productCard = `
+          <div class="product-card" data-url="/products/${doc.handle}" style="border: 1px solid #ccc; padding: 10px; border-radius: 8px; cursor: pointer;">
+            <h3 style="font-size: 16px; margin: 0 0 10px;">${doc.title}</h3>
+            <p style="font-size: 14px; color: #555;">${doc.description || ''}</p>
+            <p style="margin: 5px 0;"><strong>Price:</strong> $${doc.price}</p>
+            <p style="margin: 5px 0;"><strong>Variant:</strong> ${doc.variantTitle}</p>
+          </div>
+        `;
+        productContainer.innerHTML += productCard;
+      });
+
+    } catch (error) {
+      console.error('Search error:', error);
+    }
   });
 
-  doSearch("");
+  // Make product cards clickable to navigate to product page
+  document.addEventListener('click', function(event) {
+    const productCard = event.target.closest('.product-card');
+    if (productCard) {
+      const productUrl = productCard.dataset.url;
+      if (productUrl) {
+        window.location.href = productUrl;
+      }
+    }
+  });
+  
+  // Update the productCard template to include necessary class and data attribute
+  // in the forEach loop above, change the productCard template to:
+  const productCard = `
+    <div class="product-card" data-url="/products/${doc.handle}" style="border: 1px solid #ccc; padding: 10px; border-radius: 8px; cursor: pointer;">
+      <h3 style="font-size: 16px; margin: 0 0 10px;">${doc.title}</h3>
+      <p style="font-size: 14px; color: #555;">${doc.description || ''}</p>
+      <p style="margin: 5px 0;"><strong>Price:</strong> $${doc.price}</p>
+      <p style="margin: 5px 0;"><strong>Variant:</strong> ${doc.variantTitle}</p>
+      <a href="/products/${doc.handle}" style="color: #007bff;">View Product</a>
+    </div>
+  `;
 </script>
+
 
 {% schema %}
 {
