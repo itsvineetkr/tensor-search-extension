@@ -1,0 +1,7 @@
+-- CreateTable
+CREATE TABLE "APIKeys" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "shop_domain" TEXT NOT NULL,
+    "api_key" TEXT NOT NULL,
+    "savedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

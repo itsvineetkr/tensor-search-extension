@@ -30,3 +30,10 @@ model Session {
   collaborator  Boolean?  @default(false)
   emailVerified Boolean?  @default(false)
 }
+
+model APIKeys {
+  id              Int     @id @default(autoincrement())
+  shop_domain     String
+  api_key         String
+  savedAt         DateTime @default(now())
+}
