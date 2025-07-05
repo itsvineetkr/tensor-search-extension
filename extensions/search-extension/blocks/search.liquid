@@ -1,78 +1,668 @@
 <!-- search.liquid -->
+<!-- Include Axios from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+
 <style>
-  .search-ui {
-    padding: 1rem;
-    font-family: sans-serif;
-  }
-
-  .search-ui input {
-    padding: 0.5rem;
-    width: 300px;
-    margin-bottom: 1rem;
-  }
-
-  .search-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-  }
-
-  .search-item {
-    width: 200px;
-    border: 1px solid #ddd;
-    padding: 0.5rem;
-    text-align: center;
-  }
-
-  .search-item img {
+  /* Reset and Base Styles */
+  #custom-search-app {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #333;
+    line-height: 1.6;
+    position: relative;
     width: 100%;
-    height: auto;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
   }
 
-  .search-item button {
-    margin-top: 0.5rem;
-    padding: 0.4rem 0.8rem;
+  #custom-search-app *,
+  #custom-search-app *::before,
+  #custom-search-app *::after {
+    box-sizing: border-box;
+  }
+
+  /* Hero Section */
+  .hero-section {
+    position: ;
+    min-height: ;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  .hero-content {
+    text-align: center;
+    z-index: 10;
+    max-width: 900px;
+    width: 100%;
+    position: relative;
+  }
+
+  .hero-title {
+    font-size: 4rem;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 1.5rem;
+    text-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .hero-subtitle {
+    font-size: 1.5rem;
+    color: rgba(255,255,255,0.95);
+    margin-bottom: 4rem;
+    font-weight: 400;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Search Container */
+  .search-container {
+    background: rgba(255,255,255,0.98);
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    padding: 3rem;
+    box-shadow: 0 32px 64px rgba(0,0,0,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    max-width: 800px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .search-bar {
+    position: relative;
+    margin-bottom: 2rem;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.5rem;
+    color: #667eea;
+    z-index: 2;
+  }
+
+  .search-icon::before {
+    content: "🔍";
+  }
+
+  #search-input {
+    width: 100%;
+    padding: 1.5rem 1.5rem 1.5rem 4rem;
+    border: 3px solid #e2e8f0;
+    border-radius: 16px;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+    background: white;
+    font-family: inherit;
+    color: #1a202c;
+    font-weight: 500;
+  }
+
+  #search-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+    transform: translateY(-3px);
+  }
+
+  #search-input::placeholder {
+    color: #a0aec0;
+    font-weight: 400;
+  }
+
+  /* Price Filter */
+  .price-filter {
+    display: flex;
+    align-items: flex-end;
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+
+  .price-inputs {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+    flex: 1;
+  }
+
+  .input-group {
+    flex: 1;
+    min-width: 140px;
+  }
+
+  .input-group label {
+    display: block;
+    font-size: 1rem;
+    color: #4a5568;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.875rem;
+  }
+
+  .input-group input {
+    width: 100%;
+    padding: 1rem 1.25rem;
+    border: 3px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    background: white;
+    font-family: inherit;
+    font-weight: 500;
+    color: #1a202c;
+  }
+
+  .input-group input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+    transform: translateY(-2px);
+  }
+
+  .input-group input::placeholder {
+    color: #a0aec0;
+    font-weight: 400;
+  }
+
+  .price-separator {
+    color: #667eea;
+    font-weight: 700;
+    font-size: 1.5rem;
+    margin: 0 0.5rem;
+    padding-bottom: 1rem;
+    display: flex;
+    align-items: center;
+  }
+
+  .search-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 1rem 2.5rem;
+    border-radius: 16px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 150px;
+    justify-content: center;
+    font-family: inherit;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+  }
+
+  .search-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 35px rgba(102, 126, 234, 0.5);
+  }
+
+  .search-btn:active {
+    transform: translateY(-1px);
+  }
+
+  .search-btn::after {
+    content: "→";
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
+
+  /* Background Animation */
+
+  .floating-shape {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    animation: float 8s ease-in-out infinite;
+  }
+
+  .shape-1 {
+    width: 120px;
+    height: 120px;
+    top: 15%;
+    left: 8%;
+    animation-delay: 0s;
+  }
+
+  .shape-2 {
+    width: 80px;
+    height: 80px;
+    top: 65%;
+    right: 12%;
+    animation-delay: 2s;
+  }
+
+  .shape-3 {
+    width: 160px;
+    height: 160px;
+    bottom: 15%;
+    left: 15%;
+    animation-delay: 4s;
+  }
+
+  .shape-4 {
+    width: 60px;
+    height: 60px;
+    top: 25%;
+    right: 25%;
+    animation-delay: 1s;
+  }
+
+  @keyframes float {
+    0%, 100% { 
+      transform: translateY(0px) rotate(0deg); 
+      opacity: 0.6;
+    }
+    50% { 
+      transform: translateY(-30px) rotate(180deg); 
+      opacity: 0.8;
+    }
+  }
+
+  /* Results Section */
+  .results-section {
+    background: #f7fafc;
+    min-height: 50vh;
+    padding: 3rem 2rem;
+    position: relative;
+    z-index: 5;
+  }
+
+  .search-stats {
+    text-align: center;
+    margin-bottom: 3rem;
+    font-size: 1.25rem;
+    color: #4a5568;
+    font-weight: 600;
+  }
+
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .product-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    transition: all 0.4s ease;
+    cursor: pointer;
+    border: 1px solid rgba(0,0,0,0.04);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .product-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    transform: scaleX(0);
+    transition: transform 0.4s ease;
+  }
+
+  .product-card:hover::before {
+    transform: scaleX(1);
+  }
+
+  .product-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 24px 48px rgba(0,0,0,0.15);
+  }
+
+  .product-card h3 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: #1a202c;
+    line-height: 1.3;
+  }
+
+  .product-card p {
+    margin-bottom: 0.75rem;
+    color: #4a5568;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .product-card .price {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #667eea;
+    margin: 1.5rem 0;
+    display: block;
+  }
+
+  .product-card a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.3s ease;
+    font-size: 1.1rem;
+  }
+
+  .product-card a:hover {
+    color: #764ba2;
+  }
+
+  .product-card a::after {
+    content: " →";
+    font-weight: 700;
+  }
+
+  /* Loading */
+  .loading-container {
+    display: none;
+    text-align: center;
+    padding: 4rem;
+    color: #4a5568;
+  }
+
+  .loading-container.show {
+    display: block;
+  }
+
+  .loading-spinner {
+    margin-bottom: 2rem;
+  }
+
+  .spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #e2e8f0;
+    border-top: 5px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .hero-title {
+      font-size: 2.5rem;
+    }
+
+    .hero-subtitle {
+      font-size: 1.2rem;
+    }
+
+    .search-container {
+      padding: 2rem;
+      margin: 0 1rem;
+    }
+
+    .price-filter {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 1rem;
+    }
+
+    .price-inputs {
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .price-separator {
+      text-align: center;
+      padding: 0.5rem 0;
+    }
+
+    .search-btn {
+      width: 100%;
+      padding: 1.25rem;
+    }
+
+    .product-grid {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    .results-section {
+      padding: 2rem 1rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .hero-section {
+      padding: 1rem;
+    }
+
+    .hero-title {
+      font-size: 2rem;
+    }
+
+    .search-container {
+      padding: 1.5rem;
+    }
+
+    .product-card {
+      padding: 1.5rem;
+    }
   }
 </style>
 
-<div class="search-ui">
-  <h2>Search result</h2>
-  <input id="searchInput" type="text" placeholder="Search for products..." />
+<div id="custom-search-app">
+  <!-- Hero Section with Search -->
+  <div class="hero-section">
+    <div class="hero-content">
+      <h1 class="hero-title">Discover Amazing Products</h1>
+      <p class="hero-subtitle">Find exactly what you're looking for with our intelligent search</p>
+      
+      <!-- Search Container -->
+      <div class="search-container">
+        <div class="search-bar">
+          <div class="search-icon"></div>
+          <input type="text" id="search-input" placeholder="Search for products, brands, or categories..." />
+        </div>
+        
+        <!-- Price Filter -->
+        <div class="price-filter">
+          <div class="price-inputs">
+            <div class="input-group">
+              <label>Min Price</label>
+              <input type="number" id="min-price" placeholder="0" />
+            </div>
+            <div class="price-separator">—</div>
+            <div class="input-group">
+              <label>Max Price</label>
+              <input type="number" id="max-price" placeholder="Any" />
+            </div>
+          </div>
+          <button id="search-button" class="search-btn">
+            <span>Search</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Animated Background -->
+    <div class="bg-animation">
+      <div class="floating-shape shape-1"></div>
+      <div class="floating-shape shape-2"></div>
+      <div class="floating-shape shape-3"></div>
+      <div class="floating-shape shape-4"></div>
+    </div>
+  </div>
 
-  <div id="searchGrid" class="search-grid"></div>
+  <!-- Results Section -->
+  <div class="results-section">
+    <div id="search-stats" class="search-stats"></div>
+    <div id="product-results" class="product-grid"></div>
+    <div id="loading" class="loading-container">
+      <div class="loading-spinner">
+        <div class="spinner"></div>
+      </div>
+      <p>Searching for amazing products...</p>
+    </div>
+  </div>
 </div>
 
 <script>
-  async function doSearch(query) {
-    const res = await fetch("/apps/api/search?q=" + encodeURIComponent(query));
-    console.log(res);
-    const data = await res.json();
-
-    const grid = document.getElementById("searchGrid");
-    grid.innerHTML = data
-      .map(
-        (p) => `
-      <div class="search-item">
-        <img src="${p.image}" alt="${p.title}" />
-        <strong>${p.title}</strong><br />
-        <span>${p.vendor}</span><br />
-        <strong>${p.price}</strong><br />
-        ${
-          p.available
-            ? '<button>ADD TO CART</button>'
-            : '<button disabled>OUT OF STOCK</button>'
-        }
-      </div>
-    `
-      )
-      .join("");
+  // Show loading state
+  function showLoading() {
+    document.getElementById('loading').classList.add('show');
+    document.getElementById('product-results').style.display = 'none';
+    document.getElementById('search-stats').style.display = 'none';
   }
 
-  document.getElementById("searchInput").addEventListener("input", (e) => {
-    doSearch(e.target.value);
+  // Hide loading state
+  function hideLoading() {
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('product-results').style.display = 'grid';
+    document.getElementById('search-stats').style.display = 'block';
+  }
+
+  // Search functionality
+  document.getElementById('search-button').addEventListener('click', async () => {
+    const query = document.getElementById('search-input').value.trim();
+    const minPrice = parseFloat(document.getElementById('min-price').value) || 0;
+    const maxPrice = parseFloat(document.getElementById('max-price').value) || Infinity;
+
+    if (!query) {
+      alert('Please enter a search term');
+      return;
+    }
+
+    showLoading();
+
+    const url = 'https://83ca-183-82-163-52.ngrok-free.app/api/v1/shopify-search';
+    const searchData = {
+      shop_domain: '{{ shop.domain }}',
+      query: query,
+      search_type: 'keyword',
+      per_page: 10,
+      page: 1
+    };
+
+    try {
+      const response = await axios.post(url, searchData, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = response.data;
+      const hits = data.response[0].hits;
+      const found = data.response[0].found;
+      const searchTime = data.response[0].search_time_ms;
+      
+      hideLoading();
+      
+      const productContainer = document.getElementById('product-results');
+      const statsContainer = document.getElementById('search-stats');
+      
+      // Debug logs
+      console.log("API Response:", data);
+      console.log("Search time:", searchTime);
+      console.log('Total products found:', found);
+      
+      // Update search stats
+      const searchTimeDisplay = searchTime ? ` in ${searchTime}ms` : '';
+      statsContainer.innerHTML = `Found ${found} products for "${query}"${searchTimeDisplay}`;
+      
+      if (!hits || hits.length === 0) {
+        productContainer.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 4rem; color: #4a5568;">
+            <h3 style="font-size: 1.5rem; margin-bottom: 1rem; color: #1a202c;">No products found</h3>
+            <p style="font-size: 1.1rem;">Try adjusting your search terms or price range</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Clear previous results
+      productContainer.innerHTML = '';
+
+      // Add products
+      hits.forEach(hit => {
+        const doc = hit.document;
+        if (!doc || doc.price < minPrice || doc.price > maxPrice) return;
+
+        const productCard = document.createElement('div');
+        productCard.className = 'product-card';
+        productCard.dataset.url = `/products/${doc.handle}`;
+        
+        productCard.innerHTML = `
+          <h3>${doc.title}</h3>
+          <p>${doc.description || 'No description available'}</p>
+          <div class="price">$${doc.price}</div>
+          <p><strong>Variant:</strong> ${doc.variantTitle}</p>
+        
+        `;
+        
+        productContainer.appendChild(productCard);
+      });
+
+      // Smooth scroll to results
+      setTimeout(() => {
+        const resultsSection = document.querySelector('.results-section');
+        resultsSection.scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+
+    } catch (error) {
+      hideLoading();
+      console.error('Search error:', error);
+      
+      const productContainer = document.getElementById('product-results');
+      productContainer.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 4rem; color: #e53e3e;">
+          <h3 style="font-size: 1.5rem; margin-bottom: 1rem;">Search Error</h3>
+          <p style="font-size: 1.1rem;">Unable to search products. Please try again later.</p>
+        </div>
+      `;
+      
+      if (error.response) {
+        console.error('Response error:', error.response.status, error.response.data);
+      } else if (error.request) {
+        console.error('Request error:', error.request);
+      }
+    }
   });
 
-  doSearch("");
+  // Enter key search
+  document.getElementById('search-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      document.getElementById('search-button').click();
+    }
+  });
+
+  // Product card click navigation
+  document.addEventListener('click', function(event) {
+    const productCard = event.target.closest('.product-card');
+    if (productCard && !event.target.closest('a')) {
+      const productUrl = productCard.dataset.url;
+      if (productUrl) {
+        window.location.href = productUrl;
+      }
+    }
+  });
 </script>
 
 {% schema %}

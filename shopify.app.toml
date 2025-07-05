@@ -3,12 +3,13 @@
 client_id = "95ebb725522f1b6d746d1f6c728a73b9"
 name = "Tensor Search Extension"
 handle = "tensor-search-extension"
-application_url = "https://announcements-forth-kenny-rangers.trycloudflare.com"
+application_url = "https://protective-tour-unity-movie.trycloudflare.com"
 embedded = true
 
 [build]
 include_config_on_deploy = true
 automatically_update_urls_on_dev = true
+dev_store_url = "tensortestingone.myshopify.com"
 
 [webhooks]
 api_version = "2025-07"
@@ -26,7 +27,11 @@ api_version = "2025-07"
 scopes = "write_products"
 
 [auth]
-redirect_urls = ["https://announcements-forth-kenny-rangers.trycloudflare.com/auth/callback", "https://announcements-forth-kenny-rangers.trycloudflare.com/auth/shopify/callback", "https://announcements-forth-kenny-rangers.trycloudflare.com/api/auth/callback"]
+redirect_urls = [
+  "https://protective-tour-unity-movie.trycloudflare.com/auth/callback",
+  "https://protective-tour-unity-movie.trycloudflare.com/auth/shopify/callback",
+  "https://protective-tour-unity-movie.trycloudflare.com/api/auth/callback"
+]
 
 [pos]
 embedded = false
