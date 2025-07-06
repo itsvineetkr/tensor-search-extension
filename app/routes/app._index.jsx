@@ -1,6 +1,7 @@
 // app/routes/_index.jsx
-import { Form } from "@remix-run/react";
-import React, { useState } from "react";
+import { Form, useActionData, useNavigation } from "@remix-run/react";
+import React, { useState, useEffect } from "react";
+import { PrismaClient } from '@prisma/client';
 import {
   Check,
   Key,
@@ -10,68 +11,255 @@ import {
   ArrowRight,
   ArrowLeft,
   ExternalLink,
+  AlertCircle,
+  CheckCircle,
+  Loader2,
+  X,
+  Play,
 } from "lucide-react";
+import { authenticate } from "../shopify.server";
+
+const prisma = new PrismaClient();
+
+export async function action({ request }) {
+  try {
+    const formData = await request.formData();
+    const actionType = formData.get("actionType");
+    const apiKey = formData.get("apiKey");
+ 
+    const { session } = await authenticate.admin(request);
+    const shopDomain = session.shop;
+
+    if (actionType === "saveApiKey") {
+      if (!apiKey || apiKey.trim() === "") {
+        return Response.json({ error: "API key is required" }, { status: 400 });
+      }
+
+      try {
+        // Check if prisma is available
+        if (!prisma) {
+          console.error("Prisma client not available");
+          return Response.json({ error: "Database connection not available" }, { status: 500 });
+        }
+
+        // Test database connection
+        await prisma.$connect();
+        
+        // Check if API key already exists for this shop
+        const existingApiKey = await prisma.aPIKeys.findFirst({
+          where: { shop_domain: shopDomain }
+        });
+
+        if (existingApiKey) {
+          // Update existing API key
+          await prisma.aPIKeys.update({
+            where: { id: existingApiKey.id },
+            data: { 
+              api_key: apiKey,
+              savedAt: new Date()
+            }
+          });
+        } else {
+          // Create new API key record
+          await prisma.aPIKeys.create({
+            data: {
+              shop_domain: shopDomain,
+              api_key: apiKey,
+              savedAt: new Date()
+            }
+          });
+        }
+
+        return Response.json({ 
+          success: true, 
+          message: "API key saved successfully! You can now proceed to sync your products.",
+          actionType: "saveApiKey"
+        });
+      } catch (dbError) {
+        console.error("Database error:", dbError);
+        return Response.json({ error: "Database operation failed. Please try again." }, { status: 500 });
+      }
+    }
+
+    // Note: indexData action is removed since it will be handled by /api/sync
+
+    if (actionType === "enableTheme") {
+      // Simulate theme integration
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      return Response.json({ 
+        success: true, 
+        message: "Ready to integrate! Watch the demo to see how to add search to your theme.",
+        actionType: "enableTheme"
+      });
+    }
+
+    return Response.json({ error: "Invalid action type" }, { status: 400 });
+  } catch (error) {
+    console.error("Error in action:", error);
+    return Response.json({ error: "An unexpected error occurred. Please try again." }, { status: 500 });
+  }
+}
+
 export default function AdminPanel() {
   const [currentStep, setCurrentStep] = useState(1);
   const [apiKey, setApiKey] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [completedSteps, setCompletedSteps] = useState([]);
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState("");
+  const [notificationType, setNotificationType] = useState("success");
+  
+  const actionData = useActionData();
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
 
   const steps = [
     {
       id: 1,
-      title: "Login/Signup in Tensor solution",
-      description: "Get started by creating your account",
+      title: "Login/Signup in Tensor Solution",
+      description: "Get started by creating your account on our platform",
       icon: <ExternalLink style={{ width: "20px", height: "20px" }} />,
       action: "Login/Signup",
       url: "https://search.tensorsolution.in/",
     },
     {
       id: 2,
-      title: "Enter your API key present in the dashboard",
-      description: "Secure your connection with your unique API key",
+      title: "Enter your API key",
+      description: "Secure your connection with your unique API key from the dashboard",
       icon: <Key style={{ width: "20px", height: "20px" }} />,
-      action: "Save",
+      action: "Save API Key",
     },
     {
       id: 3,
-      title: "Proceed to index data",
-      description: "Initialize your search index for optimal performance",
+      title: "Sync your products",
+      description: "Synchronize your Shopify products with Tensor Search",
       icon: <Database style={{ width: "20px", height: "20px" }} />,
-      action: "Index Data",
+      action: "Sync Products",
     },
     {
       id: 4,
-      title: "Enable Tensor Search into your theme",
-      description: "Integrate search functionality seamlessly",
-      icon: <Settings style={{ width: "20px", height: "20px" }} />,
-      action: "Enable",
+      title: "Watch Demo - Add Search to Theme",
+      description: "Learn how to integrate search functionality into your store theme",
+      icon: <Play style={{ width: "20px", height: "20px" }} />,
+      action: "Watch Demo",
+      url: "https://www.youtube.com/watch?v=your-demo-video-id", // Replace with your actual demo video URL
     },
     {
       id: 5,
-      title: "Complete Setup",
-      description: "You can now manage searchable attributes and data",
+      title: "Setup Complete",
+      description: "You can now manage searchable attributes and optimize your search",
       icon: <Sparkles style={{ width: "20px", height: "20px" }} />,
-      action: "Finish",
+      action: "Finish Setup",
     },
   ];
 
-  const handleStepAction = async (stepId) => {
+
+  const handleProductSync = async () => {
+    try {
+      setShowNotification(true);
+      setNotificationMessage("Syncing products...");
+      setNotificationType("info");
+
+      const response = await fetch("/api/sync", {
+        method: "POST",
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        window.dispatchEvent(new CustomEvent("syncSuccess", { detail: { success: true } }));
+      } else {
+        showNotificationMessage(result.message || "Sync failed", "error");
+      }
+    } catch (err) {
+      console.error("Sync error:", err);
+      showNotificationMessage("Sync failed due to network or server error", "error");
+    }
+  };
+
+  // Handle action responses
+  useEffect(() => {
+    if (actionData?.success) {
+      const stepMap = {
+        'saveApiKey': 2,
+        'enableTheme': 4
+      };
+      
+      const completedStep = stepMap[actionData.actionType];
+      if (completedStep) {
+        setCompletedSteps(prev => {
+          const newCompleted = [...prev];
+          if (!newCompleted.includes(completedStep)) {
+            newCompleted.push(completedStep);
+          }
+          return newCompleted;
+        });
+        
+        if (completedStep < 5) {
+          setCurrentStep(completedStep + 1);
+        }
+      }
+      
+      showNotificationMessage(actionData.message, "success");
+    } else if (actionData?.error) {
+      showNotificationMessage(actionData.error, "error");
+    }
+  }, [actionData]);
+
+  // Handle sync success from /api/sync
+  useEffect(() => {
+    const handleSyncSuccess = (event) => {
+      if (event.detail?.success) {
+        setCompletedSteps(prev => {
+          const newCompleted = [...prev];
+          if (!newCompleted.includes(3)) {
+            newCompleted.push(3);
+          }
+          return newCompleted;
+        });
+        setCurrentStep(4);
+        showNotificationMessage("Products synced successfully! Your products are now searchable.", "success");
+      }
+    };
+
+    window.addEventListener('syncSuccess', handleSyncSuccess);
+    return () => window.removeEventListener('syncSuccess', handleSyncSuccess);
+  }, []);
+
+  const showNotificationMessage = (message, type) => {
+    setNotificationMessage(message);
+    setNotificationType(type);
+    setShowNotification(true);
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+      setShowNotification(false);
+    }, 5000);
+  };
+
+  const handleStepAction = (stepId) => {
     if (stepId === 1) {
       window.open("https://search.tensorsolution.in/", "_blank");
+      setCompletedSteps(prev => [...prev, 1]);
+      setCurrentStep(2);
+      showNotificationMessage("Please get your API key from the dashboard and return here to continue.", "info");
       return;
     }
 
-    setIsLoading(true);
+    if (stepId === 4) {
+      // Open demo video
+      window.open("https://www.youtube.com/watch?v=your-demo-video-id", "_blank"); // Replace with your actual demo video URL
+      setCompletedSteps(prev => [...prev, 4]);
+      setCurrentStep(5);
+      showNotificationMessage("Demo opened! Follow the video to integrate search into your theme.", "info");
+      return;
+    }
 
-    // Simulate API call
-    setTimeout(() => {
-      setCompletedSteps([...completedSteps, stepId]);
-      if (stepId < 5) {
-        setCurrentStep(stepId + 1);
-      }
-      setIsLoading(false);
-    }, 1500);
+    if (stepId === 5) {
+      // Final step - just mark as completed
+      setCompletedSteps(prev => [...prev, 5]);
+      showNotificationMessage("Setup completed! Your Tensor Search is now ready to use.", "success");
+      return;
+    }
   };
 
   const handleNext = () => {
@@ -92,13 +280,48 @@ export default function AdminPanel() {
   const styles = {
     container: {
       minHeight: "100vh",
-      background:
-        "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%)",
+      background: "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%)",
       padding: "24px",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       fontFamily: "system-ui, -apple-system, sans-serif",
+      position: "relative",
+    },
+    notification: {
+      position: "fixed",
+      top: "24px",
+      right: "24px",
+      maxWidth: "400px",
+      padding: "16px",
+      borderRadius: "12px",
+      boxShadow: "0 10px 25px rgba(0, 0, 0, 0.1)",
+      display: "flex",
+      alignItems: "center",
+      gap: "12px",
+      zIndex: 1000,
+      animation: "slideIn 0.3s ease-out",
+    },
+    notificationSuccess: {
+      background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+      color: "white",
+    },
+    notificationError: {
+      background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+      color: "white",
+    },
+    notificationInfo: {
+      background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+      color: "white",
+    },
+    closeButton: {
+      background: "none",
+      border: "none",
+      color: "inherit",
+      cursor: "pointer",
+      padding: "4px",
+      borderRadius: "4px",
+      marginLeft: "auto",
     },
     wrapper: {
       maxWidth: "1024px",
@@ -129,7 +352,7 @@ export default function AdminPanel() {
     subtitle: {
       color: "#64748b",
       fontSize: "18px",
-      margin: "20px",
+      margin: "20px 0 0 0",
     },
     progressContainer: {
       marginBottom: "48px",
@@ -250,12 +473,12 @@ export default function AdminPanel() {
       fontWeight: "600",
       color: "#1e293b",
       marginBottom: "8px",
-      margin: 0,
+      margin: "0 0 8px 0",
     },
     stepDescription: {
       color: "#64748b",
       marginBottom: "16px",
-      margin: 0,
+      margin: "0 0 16px 0",
     },
     apiKeyInput: {
       width: "100%",
@@ -270,17 +493,18 @@ export default function AdminPanel() {
       marginBottom: "16px",
     },
     completionBox: {
-      background:
-        "linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)",
-      borderRadius: "8px",
-      padding: "16px",
+      background: "linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)",
+      borderRadius: "12px",
+      padding: "20px",
       border: "2px solid rgba(99, 102, 241, 0.2)",
+      textAlign: "center",
     },
     completionTitle: {
       color: "#6366f1",
       fontWeight: "600",
-      marginBottom: "4px",
-      margin: 0,
+      marginBottom: "8px",
+      margin: "0 0 8px 0",
+      fontSize: "18px",
     },
     completionText: {
       color: "#64748b",
@@ -299,6 +523,7 @@ export default function AdminPanel() {
       transition: "all 0.2s ease",
       fontSize: "16px",
       outline: "none",
+      justifyContent: "center",
     },
     buttonPrimary: {
       background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
@@ -335,7 +560,7 @@ export default function AdminPanel() {
       width: "20px",
       height: "20px",
       border: "2px solid transparent",
-      borderTop: "2px solid white",
+      borderTop: "2px solid currentColor",
       borderRadius: "50%",
       animation: "spin 1s linear infinite",
     },
@@ -371,35 +596,166 @@ export default function AdminPanel() {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.7; }
           }
-          
+
           @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
           }
-          
+
+          @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+          }
+
           .step-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(99, 102, 241, 0.15);
           }
-          
-          .button-hover:hover {
+
+          .button-hover:hover:not(:disabled) {
             transform: scale(1.05);
           }
-          
+
           .api-input:focus {
             border-color: #6366f1;
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
           }
-          
+
           .footer-link:hover {
             color: #4f46e5;
           }
+
+          @media (max-width: 768px) {
+            body {
+              font-size: 14px;
+            }
+
+            .step-card {
+              padding: 16px !important;
+            }
+
+            .step-content {
+              flex-direction: column !important;
+            }
+
+            .step-left {
+              flex-direction: column !important;
+              align-items: flex-start !important;
+            }
+
+            .progress-bar {
+              flex-wrap: wrap;
+              gap: 8px;
+            }
+
+            .navigation-buttons {
+              flex-direction: column !important;
+              gap: 12px !important;
+            }
+
+            .step-icon {
+              width: 40px !important;
+              height: 40px !important;
+            }
+
+            .api-input {
+              font-size: 14px !important;
+            }
+
+            .button {
+              font-size: 14px !important;
+              width: 100% !important;
+            }
+
+            .notification {
+              right: 12px !important;
+              left: 12px !important;
+              max-width: 100% !important;
+              flex-wrap: wrap;
+            }
+
+            .footer {
+              font-size: 14px;
+            }
+
+            .header {
+              margin-bottom: 24px !important;
+            }
+
+            .header h1 {
+              font-size: 24px !important;
+            }
+
+            .header p {
+              font-size: 14px !important;
+            }
+          }
+
+          @media (max-width: 768px) {
+            .progress-scroll-container {
+              overflow-x: auto;
+              overflow-y: hidden;
+              white-space: nowrap;
+              padding-bottom: 12px;
+              margin-bottom: 16px;
+              -webkit-overflow-scrolling: touch;
+              scrollbar-width: thin;
+            }
+
+            .progress-scroll-container::-webkit-scrollbar {
+              height: 6px;
+            }
+
+            .progress-scroll-container::-webkit-scrollbar-thumb {
+              background-color: #cbd5e1;
+              border-radius: 4px;
+            }
+
+            .progress-step {
+              display: inline-flex !important;
+              flex-shrink: 0 !important;
+              margin-right: 12px;
+            }
+
+            .progress-line {
+              display: none;
+            }
+          }
         `}
+
+
       </style>
+
+
+      {/* Notification */}
+      {showNotification && (
+        <div
+          style={{
+            ...styles.notification,
+            ...(notificationType === "success" ? styles.notificationSuccess : 
+                notificationType === "error" ? styles.notificationError : styles.notificationInfo),
+          }}
+          className="notification"
+        >
+          {notificationType === "success" && <CheckCircle style={{ width: "20px", height: "20px", flexShrink: 0 }} />}
+          {notificationType === "error" && <AlertCircle style={{ width: "20px", height: "20px", flexShrink: 0 }} />}
+          {notificationType === "info" && <AlertCircle style={{ width: "20px", height: "20px", flexShrink: 0 }} />}
+          <span style={{ flex: 1 }}>{notificationMessage}</span>
+          <button
+            onClick={() => setShowNotification(false)}
+            style={styles.closeButton}
+          >
+            <X style={{ width: "16px", height: "16px" }} />
+          </button>
+        </div>
+      )}
 
       <div style={styles.wrapper}>
         {/* Header */}
         <div style={styles.header}>
+          <div style={styles.headerIcon}>
+            <Sparkles style={{ width: "32px", height: "32px", color: "white" }} />
+          </div>
           <h1 style={styles.title}>Tensor Search Setup</h1>
           <p style={styles.subtitle}>
             Configure your intelligent search solution in 5 simple steps
@@ -408,9 +764,9 @@ export default function AdminPanel() {
 
         {/* Progress Bar */}
         <div style={styles.progressContainer}>
-          <div style={styles.progressBar}>
+          <div className="progress-scroll-container" style={styles.progressBar}>
             {steps.map((step, index) => (
-              <div key={step.id} style={styles.progressStep}>
+              <div key={step.id} style={styles.progressStep} className="progress-step">
                 <div
                   style={{
                     ...styles.progressCircle,
@@ -435,12 +791,14 @@ export default function AdminPanel() {
                         ? styles.progressLineCompleted
                         : styles.progressLineInactive),
                     }}
+                    className="progress-line"
                   />
                 )}
               </div>
             ))}
           </div>
         </div>
+
 
         {/* Current Step Display */}
         <div style={styles.stepsContainer}>
@@ -451,8 +809,8 @@ export default function AdminPanel() {
               ...styles.stepCardActive,
             }}
           >
-            <div style={styles.stepContent}>
-              <div style={styles.stepLeft}>
+            <div style={styles.stepContent} className="step-content">
+              <div style={styles.stepLeft} className="step-left">
                 <div
                   style={{
                     ...styles.stepIcon,
@@ -460,6 +818,7 @@ export default function AdminPanel() {
                       ? styles.stepIconCompleted
                       : styles.stepIconActive),
                   }}
+                  className="step-icon"
                 >
                   {currentStepData.icon}
                 </div>
@@ -469,54 +828,119 @@ export default function AdminPanel() {
                     {currentStepData.description}
                   </p>
 
+                  {/* Step 2: API Key Input */}
                   {currentStep === 2 && (
-                    <input
-                      type="text"
-                      placeholder="Enter your API key..."
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      className="api-input"
-                      style={styles.apiKeyInput}
-                    />
+                    <Form method="post">
+                      <input type="hidden" name="actionType" value="saveApiKey" />
+                      <input
+                        type="text"
+                        name="apiKey"
+                        placeholder="Enter your API key from Tensor Solution dashboard..."
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                        className="api-input"
+                        style={styles.apiKeyInput}
+                        required
+                        
+                      />
+                      <button
+                        type="submit"
+                        disabled={isSubmitting || !apiKey.trim()}
+                        className="button-hover"
+                        style={{
+                          ...styles.button,
+                          ...styles.buttonPrimary,
+                          ...(isSubmitting || !apiKey.trim() ? styles.buttonDisabled : {}),
+                        }}
+                      >
+                        {isSubmitting ? (
+                          <Loader2 style={{ width: "16px", height: "16px" }} className="animate-spin" />
+                        ) : (
+                          <>
+                            <Key style={{ width: "16px", height: "16px" }} />
+                            <span>Save API Key</span>
+                          </>
+                        )}
+                      </button>
+                    </Form>
                   )}
 
+                  {/* Step 3: Sync Products */}
+                  {currentStep === 3 && (
+                    <button
+                      onClick={handleProductSync}
+                      disabled={isSubmitting}
+                      className="button-hover"
+                      style={{
+                        ...styles.button,
+                        ...styles.buttonPrimary,
+                        ...(isSubmitting ? styles.buttonDisabled : {}),
+                      }}
+                    >
+                      {isSubmitting ? (
+                        <Loader2 style={{ width: "16px", height: "16px" }} className="animate-spin" />
+                      ) : (
+                        <>
+                          <Database style={{ width: "16px", height: "16px" }} />
+                          <span>🔄 Sync Products</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+
+                  {/* Step 4: Watch Demo */}
+                  {currentStep === 4 && (
+                    <button
+                      onClick={() => handleStepAction(4)}
+                      className="button-hover"
+                      style={{
+                        ...styles.button,
+                        ...styles.buttonPrimary,
+                      }}
+                    >
+                      <Play style={{ width: "16px", height: "16px" }} />
+                      <span>Watch Demo Video</span>
+                    </button>
+                  )}
+
+                  {/* Step 5: Completion */}
                   {currentStep === 5 && (
                     <div style={styles.completionBox}>
-                      <p style={styles.completionTitle}>🎉 Setup Complete!</p>
+                      <h4 style={styles.completionTitle}>🎉 Setup Complete!</h4>
                       <p style={styles.completionText}>
-                        You can now manage searchable attributes and data to
-                        display in your Tensor Search dashboard.
+                        Your Tensor Search is now fully configured and ready to use. 
+                        You can manage searchable attributes and optimize your search experience 
+                        from the Tensor Solution dashboard.
                       </p>
+                      <button
+                        onClick={() => handleStepAction(5)}
+                        className="button-hover"
+                        style={{
+                          ...styles.button,
+                          ...styles.buttonSuccess,
+                          marginTop: "16px",
+                        }}
+                      >
+                        <Sparkles style={{ width: "16px", height: "16px" }} />
+                        <span>Complete Setup</span>
+                      </button>
                     </div>
                   )}
 
-                  {/* Action Button */}
-                  <button
-                    onClick={() => handleStepAction(currentStep)}
-                    disabled={
-                      isLoading || (currentStep === 2 && !apiKey.trim())
-                    }
-                    className="button-hover"
-                    style={{
-                      ...styles.button,
-                      ...(currentStep === 5
-                        ? styles.buttonSuccess
-                        : styles.buttonPrimary),
-                      ...(isLoading || (currentStep === 2 && !apiKey.trim())
-                        ? styles.buttonDisabled
-                        : {}),
-                      marginTop: "16px",
-                    }}
-                  >
-                    {isLoading ? (
-                      <div style={styles.spinner}></div>
-                    ) : (
-                      <>
-                        <span>{currentStepData.action}</span>
-                        <ArrowRight style={{ width: "16px", height: "16px" }} />
-                      </>
-                    )}
-                  </button>
+                  {/* Step 1: External Link */}
+                  {currentStep === 1 && (
+                    <button
+                      onClick={() => handleStepAction(1)}
+                      className="button-hover"
+                      style={{
+                        ...styles.button,
+                        ...styles.buttonPrimary,
+                      }}
+                    >
+                      <ExternalLink style={{ width: "16px", height: "16px" }} />
+                      <span>Open Tensor Solution</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -531,7 +955,7 @@ export default function AdminPanel() {
         </div>
 
         {/* Navigation Buttons */}
-        <div style={styles.navigationButtons}>
+        <div style={styles.navigationButtons} className="navigation-buttons">
           <button
             onClick={handlePrevious}
             disabled={currentStep === 1}
@@ -546,20 +970,18 @@ export default function AdminPanel() {
             <span>Previous</span>
           </button>
 
-          <div
-            style={{ fontSize: "16px", fontWeight: "600", color: "#64748b" }}
-          >
+          <div style={{ fontSize: "16px", fontWeight: "600", color: "#64748b" }}>
             Step {currentStep} of {steps.length}
           </div>
 
           <button
             onClick={handleNext}
-            disabled={currentStep === 5}
+            disabled={currentStep === 5 || !isStepCompleted(currentStep)}
             className="button-hover"
             style={{
               ...styles.button,
               ...styles.buttonPrimary,
-              ...(currentStep === 5 ? styles.buttonDisabled : {}),
+              ...(currentStep === 5 || !isStepCompleted(currentStep) ? styles.buttonDisabled : {}),
             }}
           >
             <span>Next</span>
@@ -568,7 +990,7 @@ export default function AdminPanel() {
         </div>
 
         {/* Footer */}
-        <div style={styles.footer}>
+        <div style={styles.footer} className="footer">
           <p style={styles.footerText}>
             Need help? Check out our{" "}
             <a href="#" style={styles.footerLink} className="footer-link">

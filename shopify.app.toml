@@ -3,7 +3,7 @@
 client_id = "95ebb725522f1b6d746d1f6c728a73b9"
 name = "Tensor Search Extension"
 handle = "tensor-search-extension"
-application_url = "https://floppy-forgot-faster-legislature.trycloudflare.com"
+application_url = "https://late-declare-biol-qui.trycloudflare.com"
 embedded = true
 
 [build]
@@ -27,7 +27,7 @@ api_version = "2025-07"
 scopes = "write_products"
 
 [auth]
-redirect_urls = ["https://floppy-forgot-faster-legislature.trycloudflare.com/auth/callback", "https://floppy-forgot-faster-legislature.trycloudflare.com/auth/shopify/callback", "https://floppy-forgot-faster-legislature.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://late-declare-biol-qui.trycloudflare.com/auth/callback", "https://late-declare-biol-qui.trycloudflare.com/auth/shopify/callback", "https://late-declare-biol-qui.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false

@@ -161,7 +161,7 @@ async function fetchAllProducts(admin) {
     return flattenProductsByVariants(allProducts);
 }
 
-async function syncProductsToAPI(products, shopDomain) {
+async function syncProductsToAPI(products, shopDomain, apiKey) {
     // Convert to JSONL format
     const jsonlData = products.map(product => JSON.stringify(product)).join('\n');
 
@@ -174,11 +174,12 @@ async function syncProductsToAPI(products, shopDomain) {
 
     // Send to external API
     const apiResponse = await axios.post(
-        'https://bckn.tensorsolution.in/api/v1/index-data-shopify',
+        'https://f6db-183-82-163-52.ngrok-free.app/api/v1/index-data-shopify',
         formData,
         {
             headers: {
-                'Content-Type': 'multipart/form-data',
+              'Content-Type': 'multipart/form-data',
+              'Authorization': `Bearer ${apiKey}`
             },
             timeout: 60000, // 60 second timeout for large datasets
         }
@@ -218,15 +219,16 @@ export const action = async ({ request }) => {
 
     try {
         const shopDomain = session.shop;
-        console.log(`Starting product sync for shop: ${shopDomain}`);
-
-        // Fetch all products using modern Shopify Admin API
         const products = await fetchAllProducts(admin);
-        console.log(`Successfully fetched ${products.length} products`);
-
-        // Convert to JSONL format and send to external API
-        const syncResult = await syncProductsToAPI(products, shopDomain);
-
+        
+        const apiKeyRecord = await prisma.APIKeys.findFirst({
+          where: {
+            shop_domain: shopDomain,
+          },
+        });
+        
+        const syncResult = await syncProductsToAPI(products, shopDomain, apiKeyRecord.api_key);
+        
         return Response.json({
             success: true,
             message: `Successfully synced ${products.length} products from ${shopDomain}`,
