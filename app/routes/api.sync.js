@@ -174,7 +174,7 @@ async function syncProductsToAPI(products, shopDomain, apiKey) {
 
     // Send to external API
     const apiResponse = await axios.post(
-        'https://f6db-183-82-163-52.ngrok-free.app/api/v1/index-data-shopify',
+        'https://bckn.tensorsolution.in/api/v1/index-data-shopify',
         formData,
         {
             headers: {
