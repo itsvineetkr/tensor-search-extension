@@ -3,31 +3,31 @@
 client_id = "95ebb725522f1b6d746d1f6c728a73b9"
 name = "Tensor Search Extension"
 handle = "tensor-search-extension"
-application_url = "https://ought-reaching-flower-charter.trycloudflare.com"
+application_url = "https://routine-formats-resolved-purchased.trycloudflare.com"
 embedded = true
 
 [build]
-include_config_on_deploy = true
 automatically_update_urls_on_dev = true
-dev_store_url = "tensortestingone.myshopify.com"
+dev_store_url = "sambit-tensor-testing.myshopify.com"
+include_config_on_deploy = true
 
 [webhooks]
 api_version = "2025-07"
 
   [[webhooks.subscriptions]]
-  topics = [ "app/uninstalled" ]
-  uri = "/webhooks/app/uninstalled"
-
-  [[webhooks.subscriptions]]
   topics = [ "app/scopes_update" ]
   uri = "/webhooks/app/scopes_update"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "write_products"
 
 [auth]
-redirect_urls = ["https://ought-reaching-flower-charter.trycloudflare.com/auth/callback", "https://ought-reaching-flower-charter.trycloudflare.com/auth/shopify/callback", "https://ought-reaching-flower-charter.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://routine-formats-resolved-purchased.trycloudflare.com/auth/callback", "https://routine-formats-resolved-purchased.trycloudflare.com/auth/shopify/callback", "https://routine-formats-resolved-purchased.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false
