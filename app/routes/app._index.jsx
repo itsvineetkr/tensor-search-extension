@@ -26,7 +26,7 @@ export async function action({ request }) {
     const formData = await request.formData();
     const actionType = formData.get("actionType");
     const apiKey = formData.get("apiKey");
- 
+
     const { session } = await authenticate.admin(request);
     const shopDomain = session.shop;
 
@@ -36,31 +36,21 @@ export async function action({ request }) {
       }
 
       try {
-        // Check if prisma is available
-        if (!prisma) {
-          console.error("Prisma client not available");
-          return Response.json({ error: "Database connection not available" }, { status: 500 });
-        }
-
-        // Test database connection
         await prisma.$connect();
-        
-        // Check if API key already exists for this shop
+
         const existingApiKey = await prisma.aPIKeys.findFirst({
           where: { shop_domain: shopDomain }
         });
 
         if (existingApiKey) {
-          // Update existing API key
           await prisma.aPIKeys.update({
             where: { id: existingApiKey.id },
-            data: { 
+            data: {
               api_key: apiKey,
               savedAt: new Date()
             }
           });
         } else {
-          // Create new API key record
           await prisma.aPIKeys.create({
             data: {
               shop_domain: shopDomain,
@@ -70,8 +60,8 @@ export async function action({ request }) {
           });
         }
 
-        return Response.json({ 
-          success: true, 
+        return Response.json({
+          success: true,
           message: "API key saved successfully! You can now proceed to sync your products.",
           actionType: "saveApiKey"
         });
@@ -81,13 +71,10 @@ export async function action({ request }) {
       }
     }
 
-    // Note: indexData action is removed since it will be handled by /api/sync
-
     if (actionType === "enableTheme") {
-      // Simulate theme integration
       await new Promise(resolve => setTimeout(resolve, 1500));
-      return Response.json({ 
-        success: true, 
+      return Response.json({
+        success: true,
         message: "Ready to integrate! Watch the demo to see how to add search to your theme.",
         actionType: "enableTheme"
       });
@@ -107,7 +94,8 @@ export default function AdminPanel() {
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState("");
   const [notificationType, setNotificationType] = useState("success");
-  
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
   const actionData = useActionData();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
@@ -141,7 +129,7 @@ export default function AdminPanel() {
       description: "Learn how to integrate search functionality into your store theme",
       icon: <Play style={{ width: "20px", height: "20px" }} />,
       action: "Watch Demo",
-      url: "https://www.youtube.com/watch?v=your-demo-video-id", // Replace with your actual demo video URL
+      url: "https://www.youtube.com/watch?v=your-demo-video-id",
     },
     {
       id: 5,
@@ -152,9 +140,9 @@ export default function AdminPanel() {
     },
   ];
 
-
   const handleProductSync = async () => {
     try {
+      setShowConfirmModal(false);
       setShowNotification(true);
       setNotificationMessage("Syncing products...");
       setNotificationType("info");
@@ -175,6 +163,61 @@ export default function AdminPanel() {
       showNotificationMessage("Sync failed due to network or server error", "error");
     }
   };
+
+  const ConfirmModal = ({ onConfirm, onCancel }) => (
+    <div style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 1001,
+    }}>
+      <div style={{
+        background: "white",
+        padding: "24px",
+        borderRadius: "12px",
+        maxWidth: "480px",
+        width: "100%",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
+      }}>
+        <h3 style={{ fontSize: "20px", marginBottom: "12px", color: "#1e293b" }}>
+          Confirm Product Sync
+        </h3>
+        <p style={{ fontSize: "16px", marginBottom: "20px", color: "#475569" }}>
+          Are you sure you want to sync your products with Tensor Solution? This will share your product data with our servers to make them searchable.
+        </p>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+          <button onClick={onCancel} style={{
+            padding: "8px 16px",
+            background: "#e2e8f0",
+            border: "none",
+            borderRadius: "8px",
+            cursor: "pointer",
+            color: "#1e293b",
+            fontWeight: "500",
+          }}>
+            Cancel
+          </button>
+          <button onClick={onConfirm} style={{
+            padding: "8px 16px",
+            background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+            border: "none",
+            borderRadius: "8px",
+            color: "white",
+            fontWeight: "500",
+            cursor: "pointer",
+          }}>
+            Yes, Sync Now
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   // Handle action responses
   useEffect(() => {
@@ -590,6 +633,12 @@ export default function AdminPanel() {
 
   return (
     <div style={styles.container}>
+      {showConfirmModal && (
+        <ConfirmModal
+          onConfirm={handleProductSync}
+          onCancel={() => setShowConfirmModal(false)}
+        />
+      )}
       <style>
         {`
           @keyframes pulse {
@@ -868,7 +917,7 @@ export default function AdminPanel() {
                   {/* Step 3: Sync Products */}
                   {currentStep === 3 && (
                     <button
-                      onClick={handleProductSync}
+                      onClick={() => setShowConfirmModal(true)}
                       disabled={isSubmitting}
                       className="button-hover"
                       style={{

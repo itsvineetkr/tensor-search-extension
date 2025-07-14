@@ -6,6 +6,15 @@ import {
   ScrollRestoration,
 } from "@remix-run/react";
 
+export async function loader() {
+  return new Response(null, {
+    headers: {
+      "Content-Security-Policy": "frame-ancestors https://*.myshopify.com https://admin.shopify.com",
+      "X-Frame-Options": "ALLOWALL",
+    },
+  });
+}
+
 export default function App() {
   return (
     <html>
